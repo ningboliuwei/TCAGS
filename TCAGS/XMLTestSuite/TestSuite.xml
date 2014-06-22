@@ -1,0 +1,16 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<Test>
+  <TestInfo>
+    <Tester></Tester>
+    <Description></Description>
+    <Time></Time>
+  </TestInfo>
+  <TestSuite>
+    <Test>
+      <ID></ID>
+      <Input></Input>
+      <ExpectedOutput></ExpectedOutput>
+      <Output></Output>
+    </Test>
+  </TestSuite>
+</Test>
