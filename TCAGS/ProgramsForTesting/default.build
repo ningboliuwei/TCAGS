@@ -1,27 +1,71 @@
 <?xml version="1.0"?>
+
 <project name="NUnit Integration" default="test">
+
   <property name="build.dir" value="E:\GitHub\TCAGS\TCAGS\ProgramsForTesting>" />
   <target name="build">
+    <echo message="build running" ></echo>
     <csc target="library" output="Triangle.dll">
       <sources>
-        <includes name="Triangle.cs" />
+        <include name="Triangle.cs" />
       </sources>
     </csc>
   </target>
+ 
+  
+ 
+ 
+ 
   <target name="test" depends="build">
+    <echo message="test running" ></echo>
+       
     <csc target="library" output="TriangleTest.dll">
       <sources>
-        <includes name="TriangleTest.cs" />
+        <include name="TriangleTest.cs" />
       </sources>
       <references>
-        <includes name="nunit.framework.dll" />
-        <includes name="Triangle.dll" />
+        <include name="nunit.framework.dll" />
+        <include name="Triangle.dll" />
       </references>
     </csc>
-    
+   <echo message="unit running" ></echo>
+   <nunit2>
+     
+      <!-- 输出的文件为  XML 格式.  -->
+      <formatter type="Xml" usefile="true" extension=".xml" outputdir="r:/" />
+      <test assemblyname="TriangleTest.dll" >
+        <references>
+          <include name="nunit.framework.dll" />
+        </references>
+      </test>
+    </nunit2>
+  
+   <nunit2report todir="r:/">
+    <fileset>
+        <includes name="r:/*results.xml" />
+    </fileset>
+</nunit2report>
    
   </target>
-  <target name="doc" depends="build" description="build documentation">
+
+  
+   
+    
+  <target name="unittest" depends="build">
+
+    <!-- 调用 Nunit 进行测试  -->
+   
+  </target>
+ 
+ 
+
+  <!-- <nunit2report todir="r:\">
+    <fileset>
+        <includes name="r:\results.xml" />
+    </fileset>
+</nunit2report>
+-->
+  <!--<target name="doc" depends="build" description="build documentation">
     <echo message="Requires HtmlHelp compiler (hhc.exe) to be in the system path"/>
     <ndoc failonerror="false">
       <assemblies basedir="${output.dir}">
@@ -54,6 +98,7 @@
     </ndoc>
     <copy file="${nant.project.basedir}\docs\MsDn\NUnit2Report.chm" todir="docs"/>
     <delete dir="${nant.project.basedir}\docs\MsDn"/>
-  </target>
+  </target>-->
+
 
 </project>
