@@ -1,7 +1,6 @@
 <?xml version="1.0"?>
 
 <project name="NUnit Integration" default="test">
-
   <property name="build.dir" value="E:\GitHub\TCAGS\TCAGS\ProgramsForTesting>" />
   <target name="build">
     <echo message="build running" ></echo>
@@ -11,14 +10,7 @@
       </sources>
     </csc>
   </target>
- 
-  
- 
- 
- 
   <target name="test" depends="build">
-    <echo message="test running" ></echo>
-       
     <csc target="library" output="TriangleTest.dll">
       <sources>
         <include name="TriangleTest.cs" />
@@ -28,77 +20,19 @@
         <include name="Triangle.dll" />
       </references>
     </csc>
-   <echo message="unit running" ></echo>
-   <nunit2>
-     
-      <!-- 输出的文件为  XML 格式.  -->
-      <formatter type="Xml" usefile="true" extension=".xml" outputdir="r:/" />
+    <echo message="unit running" ></echo>
+    <nunit2>
+      <formatter type="Xml" usefile="true" extension=".xml" outputdir="d:/" />
       <test assemblyname="TriangleTest.dll" >
         <references>
           <include name="nunit.framework.dll" />
         </references>
       </test>
     </nunit2>
-  
-   <nunit2report todir="r:/">
-    <fileset>
-        <includes name="r:/*results.xml" />
-    </fileset>
-</nunit2report>
-   
+    <nunit2report todir="d:/">
+      <fileset>
+        <includes name="d:/*results.xml" />
+      </fileset>
+    </nunit2report>
   </target>
-
-  
-   
-    
-  <target name="unittest" depends="build">
-
-    <!-- 调用 Nunit 进行测试  -->
-   
-  </target>
- 
- 
-
-  <!-- <nunit2report todir="r:\">
-    <fileset>
-        <includes name="r:\results.xml" />
-    </fileset>
-</nunit2report>
--->
-  <!--<target name="doc" depends="build" description="build documentation">
-    <echo message="Requires HtmlHelp compiler (hhc.exe) to be in the system path"/>
-    <ndoc failonerror="false">
-      <assemblies basedir="${output.dir}">
-        <includes name="NAnt.NUnit2ReportTasks.dll"/>
-      </assemblies>
-      <documenters>
-        <documenter name="MSDN">
-          <property name="output.directory" value="docs" />
-          <property name="HtmlHelpName" value="NUnit2Report" />
-          <property name="HtmlHelpCompilerFilename" value="hhc.exe" />
-          <property name="IncludeFavorites" value="False" />
-          <property name="Title" value="An NDoc Documented Class Library" />
-          <property name="SplitTOCs" value="False" />
-          <property name="DefaulTOC" value="" />
-          <property name="ShowVisualBasic" value="True" />
-          <property name="ShowMissingSummaries" value="false" />
-          <property name="ShowMissingRemarks" value="false" />
-          <property name="ShowMissingParams" value="false" />
-          <property name="ShowMissingReturns" value="false" />
-          <property name="ShowMissingValues" value="false" />
-          <property name="DocumentInternals" value="False" />
-          <property name="DocumentProtected" value="True" />
-          <property name="DocumentPrivates" value="False" />
-          <property name="DocumentEmptyNamespaces" value="False" />
-          <property name="IncludeAssemblyVersion" value="False" />
-          <property name="CopyrightText" value="Copyright(C) 2003, Gilles Bayon" />
-          <property name="CopyrightHref" value="http://www.pot-au-feu.org/" />
-        </documenter>
-      </documenters>
-    </ndoc>
-    <copy file="${nant.project.basedir}\docs\MsDn\NUnit2Report.chm" todir="docs"/>
-    <delete dir="${nant.project.basedir}\docs\MsDn"/>
-  </target>-->
-
-
 </project>
