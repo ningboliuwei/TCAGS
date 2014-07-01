@@ -1,0 +1,38 @@
+<?xml version="1.0"?>
+
+<project name="NUnit Integration" default="test">
+  <property name="build.dir" value="$build_dir" />
+  <target name="build">
+    <echo message="build running" ></echo>
+    <csc target="library" output="$source_dll_name">
+      <sources>
+        <include name="$source_cs_name" />
+      </sources>
+    </csc>
+  </target>
+  <target name="test" depends="build">
+    <csc target="library" output="$test_dll_name">
+      <sources>
+        <include name="$test_cs_name" />
+      </sources>
+      <references>
+        <include name="nunit.framework.dll" />
+        <include name="$source_dll_name" />
+      </references>
+    </csc>
+    <echo message="unit running" ></echo>
+    <nunit2>
+      <formatter type="Xml" usefile="true" extension=".xml" outputdir="$report_output_dir" />
+      <test assemblyname="$test_dll_name" >
+        <references>
+          <include name="nunit.framework.dll" />
+        </references>
+      </test>
+    </nunit2>
+    <nunit2report todir="$report_output_dir">
+      <fileset>
+        <includes name="$report_output_dir\*results.xml" />
+      </fileset>
+    </nunit2report>
+  </target>
+</project>
