@@ -16,7 +16,7 @@
         <include name="$test_cs_name" />
       </sources>
       <references>
-        <include name="nunit.framework.dll" />
+        <include name="$nunit_dll_path" />
         <include name="$source_dll_name" />
       </references>
     </csc>
@@ -25,7 +25,7 @@
       <formatter type="Xml" usefile="true" extension=".xml" outputdir="$report_output_dir" />
       <test assemblyname="$test_dll_name" >
         <references>
-          <include name="nunit.framework.dll" />
+          <include name="$nunit_dll_path" />
         </references>
       </test>
     </nunit2>
