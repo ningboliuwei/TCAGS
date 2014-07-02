@@ -22,6 +22,8 @@ namespace ProgramsForTesting
 			Assert.AreEqual("等边三角形", triangle.GetTypeOfTriangle(3, 3, 3));
 			Assert.AreEqual("等腰三角形", triangle.GetTypeOfTriangle(3, 3, 4));
 			Assert.AreEqual("一般三角形", triangle.GetTypeOfTriangle(3, 4, 5));
+
+
 		}
 
 		

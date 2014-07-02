@@ -28,11 +28,11 @@ namespace TestProgramGenerator
 
 			GenerateCSFile(textBox1.Text, outputDir + "\\" + className + ".cs");
 			GenerateBuildConfig(className, outputDir);
+			GenerateUnitTestFile(outputDir + "\\" + className + "test.cs");
 
 			command = outputDir.Substring(0, 2) + "\n";
 			command += "cd " + outputDir + "\n";
 			command += "c:\\\n";
-			//command += "cd c:\\windows\\system32\n";
 			command += "NANT.BAT";
 
 			ExecuteCommand(command);
@@ -80,7 +80,7 @@ namespace TestProgramGenerator
 					.Replace("$test_dll_name", className + "test.dll")
 					.Replace("$test_cs_name", className + "test.cs")
 					.Replace("$report_output_dir", outputDir)
-					.Replace("$nunit_dll_path", Application.StartupPath + "\\nunit.framework.dll");
+					.Replace("$nunit_dll_path", Application.StartupPath + "\\nunit.framework.dll");//获得NUnit dll的地址
 
 				doc.LoadXml(newConfigText);
 				doc.Save(targetPath);
@@ -99,6 +99,30 @@ namespace TestProgramGenerator
 			{
 				StreamWriter streamWriter = new StreamWriter(targetFilePath, false, new UTF8Encoding());
 				streamWriter.Write(sourceCode);
+				streamWriter.Close();
+			}
+			catch (Exception ex)
+			{
+
+				throw new Exception(ex.Message);
+			}
+
+		}
+
+		public void GenerateUnitTestFile(string targetPath)
+		{
+			string templatePath;
+			string fileContent;
+
+			templatePath = Application.StartupPath + "\\unit_test_template.txt";
+			try
+			{
+				StreamReader streamReader = new StreamReader(templatePath, new UTF8Encoding());
+				fileContent = streamReader.ReadToEnd();
+				streamReader.Close();
+
+				StreamWriter streamWriter = new StreamWriter(targetPath, false, new UTF8Encoding());
+				streamWriter.Write(fileContent);
 				streamWriter.Close();
 			}
 			catch (Exception ex)
