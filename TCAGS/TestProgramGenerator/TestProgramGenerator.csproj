@@ -35,6 +35,10 @@
     <StartupObject>TestProgramGenerator.Program</StartupObject>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Nova.CodeDOM, Version=5.9.5286.32246, Culture=neutral, PublicKeyToken=d87fa3d89af8822d, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>.\Nova.CodeDOM.dll</HintPath>
+    </Reference>
     <Reference Include="System">
       <Private>True</Private>
     </Reference>
@@ -56,6 +60,9 @@
     </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Content Include="Nova.CodeDOM.dll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <Content Include="nunit.framework.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
