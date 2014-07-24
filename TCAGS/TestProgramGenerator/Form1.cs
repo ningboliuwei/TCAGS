@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Windows.Forms;
@@ -13,6 +14,8 @@ using System.Xml;
 using Mono.Cecil;
 using Nova.Analysis;
 using Nova.CodeDOM;
+using ICSharpCode.NRefactory;
+using ICSharpCode.NRefactory.CSharp;
 
 namespace TestProgramGenerator
 {
@@ -20,6 +23,7 @@ namespace TestProgramGenerator
 	{
 		private static string _baseDirectory;
 		private static string _executionDirectory;
+		private SyntaxTree syntaxTree;
 
 		public Form1()
 		{
@@ -29,37 +33,133 @@ namespace TestProgramGenerator
 		private void button1_Click(object sender, EventArgs e)
 		{
 			string outputDir = "r:\\";
-			string className = GetClassName(textBox1.Text);
-			string command;
+			//string className = GetClassName(textBox1.Text);
+			string className = "Triangle";
+
+			LoadSytanxTree(textBox1.Text); //将源代码解析为语法树
+			textBox1.Clear();
+			TraverseASTNode(syntaxTree);
 
 			GenerateCSFile(textBox1.Text, outputDir + "\\" + className + ".cs");
 			GenerateBuildConfig(className, outputDir);
 			GenerateUnitTestFile(outputDir + "\\" + className + "test.cs");
 
-			command = outputDir.Substring(0, 2) + "\n";
-			command += "cd " + outputDir + "\n";
-			command += "c:\\\n";
-			command += "NANT.BAT";
+			ExecuteNANT(outputDir);
 
-			ExecuteCommand(command);
+			//string methodName = GetMethodNames(textBox1.Text)[0];
+			textBox1.Text = Regex.Replace(textBox1.Text, "[\f\n\r\t\v]", "");
+			textBox1.Text = Regex.Replace(textBox1.Text, " {2,}", " ");
+			textBox1.Text = textBox1.Text.Replace(" {", "{");
+			//codeText = sourceCode.Replace("\r", "").Replace("\n", "").Replace(" ","").ToLower();
 
 
 			MessageBox.Show("输出成功");
 		}
 
-		private string GetClassName(string sourceCode)
+		private void ExecuteNANT(string outputDir)
+		{
+			string command = outputDir.Substring(0, 2) + "\n";
+			command += "cd " + outputDir + "\n";
+			command += "c:\\\n";
+			command += "NANT.BAT";
+
+			ExecuteCommand(command);
+		}
+
+
+		private string GetNodeName(AstNode node)
+		{
+			string className = "";
+
+
+
+
+
+			bool hasProperties = false;
+			bool isClassNode = false;
+
+			foreach (PropertyInfo p in node.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance))
+			{
+
+			}
+			foreach (PropertyInfo p in node.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance))
+			{
+				if (p.Name == "NodeType" || p.Name == "IsNull" || p.Name == "IsFrozen" || p.Name == "HasChildren")
+				{
+					continue;
+				}
+				if ((p.PropertyType == typeof(string) || p.PropertyType.IsEnum || p.PropertyType == typeof(bool)))
+				{
+					if (p.Name == "ClassType")
+					{
+						foreach (PropertyInfo p2 in node.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance))
+						{
+							if (p2.Name == "NodeType" || p2.Name == "IsNull" || p2.Name == "IsFrozen" || p2.Name == "HasChildren")
+							{
+								continue;
+							}
+							if ((p2.PropertyType == typeof(string) || p2.PropertyType.IsEnum || p2.PropertyType == typeof(bool)))
+							{
+								if (p2.Name.ToUpper() == "NAME") //如果当前是Class节点
+								{
+									MessageBox.Show(p2.GetValue(node, null).ToString());
+
+								}
+							}
+						}
+					}
+
+				
+				}
+
+			}
+
+
+			return className;
+		}
+
+		private void TraverseASTNode(AstNode node)
+		{
+			AstNode childNode;
+
+			childNode = node.FirstChild;
+
+			string name = "";
+
+			if (node != null)
+			{
+				name = GetNodeName(node);
+				if (name != "")
+				{
+					textBox1.Text += name + Environment.NewLine;
+				}
+			}
+
+			while (childNode != null)
+			{
+				TraverseASTNode(childNode);
+				childNode = childNode.NextSibling;
+			}
+		}
+
+
+		private List<string> GetMethodNames(string sourceCode)
 		{
 			string codeText = "";
 			int startPos;
 			int endPos;
-			string className;
+			List<string> methodNames;
 
-			codeText = sourceCode.Replace(" ", "").Replace("\r", "").Replace("\n", "").ToLower();
-			startPos = codeText.IndexOf("class") + 5;
-			endPos = codeText.IndexOf("{", startPos);
-			className = codeText.Substring(startPos, endPos - startPos - 1);
+			codeText = Regex.Replace(sourceCode, "[\f\n\r\t\v]", "");
+			//codeText = sourceCode.Replace("\r", "").Replace("\n", "").Replace(" ","").ToLower();
+			textBox1.Text = codeText;
 
-			return className;
+			return new List<string>();
+			//startPos = codeText.IndexOf("class") + 5;
+			//endPos = codeText.IndexOf("{", startPos);
+			//className = codeText.Substring(startPos, endPos - startPos - 1);
+
+			//return className;
 		}
 
 		private void GenerateBuildConfig(string className, string outputDir)
@@ -86,17 +186,15 @@ namespace TestProgramGenerator
 					.Replace("$test_dll_name", className + "test.dll")
 					.Replace("$test_cs_name", className + "test.cs")
 					.Replace("$report_output_dir", outputDir)
-					.Replace("$nunit_dll_path", Application.StartupPath + "\\nunit.framework.dll");//获得NUnit dll的地址
+					.Replace("$nunit_dll_path", Application.StartupPath + "\\nunit.framework.dll"); //获得NUnit dll的地址
 
 				doc.LoadXml(newConfigText);
 				doc.Save(targetPath);
 			}
 			catch (Exception ex)
 			{
-
 				throw new Exception(ex.Message);
 			}
-
 		}
 
 		public void GenerateCSFile(string sourceCode, string targetFilePath)
@@ -109,10 +207,8 @@ namespace TestProgramGenerator
 			}
 			catch (Exception ex)
 			{
-
 				throw new Exception(ex.Message);
 			}
-
 		}
 
 		public void GenerateUnitTestFile(string targetPath)
@@ -133,10 +229,8 @@ namespace TestProgramGenerator
 			}
 			catch (Exception ex)
 			{
-
 				throw new Exception(ex.Message);
 			}
-
 		}
 
 
@@ -164,240 +258,10 @@ namespace TestProgramGenerator
 			p.Close();
 		}
 
-		private void LoadCode()
+		private void LoadSytanxTree(string sourceCode)
 		{
-
+			CSharpParser csParser = new CSharpParser();
+			syntaxTree = csParser.Parse(sourceCode);
 		}
-
-		public static void LoadCodeUnits(string sourceCode)
-		{
-			// To load one or more CodeUnits with external references resolved, create a 'dummy' parent Project for the CodeUnits,
-			// and add any desired assembly references to it.
-			//Project project = new Project("Miscellaneous Files", null);
-			//CodeUnit codeUnit1 = project.CreateCodeUnit("Program.cs");  // Add files like this
-			//CodeUnit codeUnit2 = project.CreateCodeUnit("MyVisitor.cs");
-			//const string fragment = "using System; Console.WriteLine(\"TEST\");";
-			//CodeUnit codeUnit3 = project.CreateCodeUnit(fragment, "Fragment");  // Add code fragments like this
-
-			// We want external references resolved in this case, so add assembly references and load their types
-			//project.AddDefaultAssemblyReferences();  // Add commonly used assembly references
-			//// Add additional assembly references like this, with an optional "hint path":
-			//project.AddAssemblyReference("Nova.CodeDOM", GetFilePath("Nova.CodeDOM.dll"));
-			//// You may also set 'project.ReferencePath' to a string of semi-colon separated search paths.
-
-			//project.LoadReferencedAssembliesAndTypes();  // Load the referenced assemblies, and their public types
-			//project.ParseAndResolveCodeUnits();          // Parse and resolve all code units in the project
-
-			// In this example, there is no Solution, so we can't benefit from it's single CodeAnnotations collection
-			// of all messages for all source files.  We could add a dummy Solution to the Project to get this, or look
-			// at the ListedAnnotations collection on each CodeUnit.  In this case, we'll just call a helper method on
-			// each CodeUnit that displays message counts along with any errors or warnings.
-			//codeUnit1.LogMessageCounts(true);
-			//codeUnit2.LogMessageCounts(true);
-			//codeUnit3.LogMessageCounts(true);
-
-			Project project = new Project("tempProjectForTest", null);
-			string fragment = sourceCode;
-			CodeUnit codeUnit3 = project.CreateCodeUnit(fragment, "Fragment");  // Add code fragments like this
-			project.AddDefaultAssemblyReferences();
-			project.AddAssemblyReference("Nova.CodeDOM", GetFilePath("Nova.CodeDOM.dll"));
-			project.LoadReferencedAssembliesAndTypes();  // Load the referenced assemblies, and their public types
-			project.ParseAndResolveCodeUnits();          // Parse and resolve all code units in the project
-
-			Namespace namespace_Examples = project.FindNamespace("Nova.Examples");
-
-			if (namespace_Examples != null)
-			{
-				var findMethodDecls = new FindByType(typeof(MethodDecl), project);
-				findMethodDecls.Find();
-			}
-
-		}
-
-		private static string GetFilePath(string name)
-		{
-			string filePath = _executionDirectory + @"\" + name;
-			if (!File.Exists(filePath))
-				filePath = _baseDirectory + @"\" + name;
-			return filePath;
-		}
-
-		#region /* FINDING CODE OBJECTS EXAMPLES */
-
-		/// <summary>
-		/// Finding code objects in a particular scope.
-		/// </summary>
-		//public static void FindCodeObjects()
-		//{
-		//	// Various 'Find' methods are provided on various CodeDOM types to find immediate child code objects at a particular
-		//	// point in a code tree, examples of which are shown below.  Global finds or searches are addressed in later examples.
-
-		//	Solution solution = Solution.Load("Nova.Examples.sln");
-		//	if (solution != null)
-		//	{
-		//		// Find a Project in a Solution by name
-		//		Project project = solution.FindProject("Nova.Examples");
-		//		Log.WriteLine(project != null ? "Found " + project : "ERROR - Project not found");
-		//		if (project != null)
-		//		{
-		//			// Find a CodeUnit in a Project by name
-		//			CodeUnit codeUnit = project.FindCodeUnit("Program.cs");
-		//			Log.WriteLine(codeUnit != null ? "Found " + codeUnit : "ERROR - CodeUnit not found");
-
-		//			// Find a Namespace in a Project by full name
-		//			Namespace namespace_Examples = project.FindNamespace("Nova.Examples");
-		//			Log.WriteLine(namespace_Examples != null ? "Found " + namespace_Examples : "ERROR - Namespace not found");
-		//			if (namespace_Examples != null)
-		//			{
-		//				// Find a type in a Project as a TypeRef (to a TypeDecl or TypeDefinition or Type) when
-		//				// you don't know if the type is external or not.
-		//				var typeRef_Console = project.FindRef("System.Console") as TypeRef;  // Treat UnresolvedRef as null
-		//				Log.WriteLine(typeRef_Console != null ? "Found " + typeRef_Console : "ERROR - TypeRef not found");
-
-		//				// Find a TypeDecl in a Project when you know the type is local (as opposed to external).
-		//				var typeDecl_Program1 = project.Find("Nova.Examples.Program") as TypeDecl;
-		//				Log.WriteLine(typeDecl_Program1 != null ? "Found " + typeDecl_Program1 : "ERROR - TypeDecl not found");
-
-		//				// Find a TypeDefinition (if using Mono Cecil - the default) or a Type (if using Reflection) in a Project
-		//				// when you know the type is external.
-		//				if (ApplicationContext.UseMonoCecilLoads)
-		//				{
-		//					var typeDefinition = project.Find("System.Console") as TypeDefinition;
-		//					Log.WriteLine(typeDefinition != null ? "Found TypeDefinition: " + typeDefinition : "ERROR - TypeDefinition not found");
-		//				}
-		//				else
-		//				{
-		//					var type = project.Find("System.Console") as Type;
-		//					Log.WriteLine(type != null ? "Found Type: " + type : "ERROR - Type not found");
-		//				}
-
-		//				// Find a type in a Namespace as a TypeRef
-		//				var typeRef_Program = TypeRef.Find(namespace_Examples, "Program") as TypeRef;
-		//				Log.WriteLine(typeRef_Program != null ? "Found " + typeRef_Program : "ERROR - TypeRef not found");
-
-		//				// Find a TypeDecl in a Namespace
-		//				var typeDecl_Program = namespace_Examples.Find("Program") as TypeDecl;
-		//				Log.WriteLine(typeDecl_Program != null ? "Found " + typeDecl_Program : "ERROR - TypeDecl not found");
-		//				if (typeDecl_Program != null)
-		//				{
-		//					// Find a MethodDecl in a TypeDecl by name
-		//					var methodDecl = typeDecl_Program.FindFirst<MethodDecl>("FindCodeObjects");
-		//					Log.WriteLine(methodDecl != null ? "Found " + methodDecl : "ERROR - MethodDecl not found");
-		//					if (methodDecl != null)
-		//					{
-		//						// Find a LocalDecl in a MethodDecl by name
-		//						var localDecl = methodDecl.FindFirst<LocalDecl>("solution");
-		//						Log.WriteLine(localDecl != null ? "Found " + localDecl : "ERROR - LocalDecl not found");
-		//						if (localDecl != null)
-		//						{
-		//							// Find the Parent MethodDecl of a code object
-		//							var parentMethod = localDecl.FindParentMethod();
-		//							Log.WriteLine(parentMethod != null ? "Found " + parentMethod : "ERROR - parent Method not found");
-
-		//							// Find the Parent NamespaceDecl of a code object
-		//							var parentNamespaceDecl = localDecl.FindParent<NamespaceDecl>();
-		//							Log.WriteLine(parentNamespaceDecl != null ? "Found " + parentNamespaceDecl : "ERROR - parent NamespaceDecl not found");
-		//						}
-
-		//						// Find the first 'if' statement in a MethodDecl
-		//						var @if = methodDecl.FindFirst<If>();
-		//						Log.WriteLine(@if != null ? "Found " + @if : "ERROR - If statement not found");
-		//						if (@if != null)
-		//						{
-		//							// Find all child 'if' statements in the body of a parent 'if' statement
-		//							foreach (var statement in @if.Body)
-		//							{
-		//								if (statement is If)
-		//									Log.WriteLine("Found child " + statement);
-		//							}
-		//						}
-		//					}
-		//				}
-		//			}
-		//		}
-		//	}
-
-			// Helper methods are provided on various SymbolicRef types to find types when manually generating code
-			// which conveniently return an UnresolvedRef instead of null if the item isn't found.  They can also
-			// be passed an UnresolvedRef as input, so the output of one call can be passed as the input of another
-			// without any checks for errors.  For examples, see ManualTests.GenerateFullTest().
-			// These methods include the following signature patterns:
-			//
-			// Get a reference to a type or namespace in the current project instance:
-			//     SymbolicRef Project.FindRef(string name)
-			//
-			// Find a type in a namespace or parent type, where NorT is a Namespace or Type/TypeDecl, or an Alias to one
-			//     SymbolicRef TypeRef.Find(NorT type, string name)
-			//
-			// Find a member of a type, where TYPE is a Type, TypeDecl, TypeRefBase, or type Alias:
-			//     SymbolicRef MethodRef.Find(TYPE type, string name)
-			//     SymbolicRef ConstructorRef.Find(TYPE type, params TypeRefBase[] parameterTypes)
-			//     SymbolicRef PropertyRef.Find(TYPE type, string name)
-			//     SymbolicRef FieldRef.Find(TYPE type, string name)
-			//
-			// Find a parameter of a method, where METHOD is a MethodInfo or MethodDeclBase
-			//     SymbolicRef ParameterRef.Find(METHOD method, string name)
-		}
-
-		/// <summary>
-		/// Find all code objects of a certain type.
-		/// </summary>
-		public static void FindByType()
-		{
-			Solution solution = Solution.Load("Nova.Examples.sln");
-			if (solution != null)
-			{
-				// Find all MethodDecls in the solution
-				var findMethodDecls = new FindByType(typeof(MethodDecl), solution);
-				findMethodDecls.Find();
-				Log.WriteLine("Found " + findMethodDecls.Results.Count + " MethodDecls in the solution");
-
-				Project project = solution.FindProject("Nova.Examples");
-				if (project != null)
-				{
-					// Find all ClassDecls in the project
-					var findClassDecls = new FindByType(typeof(ClassDecl), project);
-					findClassDecls.Find();
-					Log.WriteLine("Found " + findClassDecls.Results.Count + " ClassDecls in the project");
-
-					// Find all If statements in Program.cs
-					CodeUnit programFile = project.FindCodeUnit("Program.cs");
-					var findIfs = new FindByType(typeof(If), programFile);
-					findIfs.Find();
-					Log.WriteLine("Found " + findIfs.Results.Count + " 'if' statements in " + programFile.Name);
-				}
-			}
-		}
-
-		/// <summary>
-		/// Find code objects by text string or regular expression.
-		/// </summary>
-		public static void FindByText()
-		{
-			Solution solution = Solution.Load("Nova.Examples.sln");
-			if (solution != null)
-			{
-				// Find all code objects in the solution with the text 'Find' in their name or content
-				// (match case, but don't require it to be a whole word).
-				var findText1 = new FindByText("Find", solution, true, false);
-				findText1.Find();
-				Log.WriteLine("Found " + findText1.Results.Count + " objects containing the text 'Find' in the solution");
-
-				// Find all code objects in the solution that have a name of 'findText1' OR 'findText2', or contain
-				// such a name in their text content (using regular expressions).  Match case and whole words only.
-				var findText2 = new FindByText("findText1|findText2", solution, true, true, true);
-				findText2.Find();
-				Log.WriteLine("Found " + findText2.Results.Count + " objects containing the text 'findText1' or 'findText2' in the solution");
-
-				// Note that the scope of FindByText can be any sub-tree, and in addition to the options to MatchCase, MatchWholeWord,
-				// and UseRegularExpressions, there are result filtering options to MatchDeclarations, MatchReferences, MatchLiterals,
-				// MatchComments, and MatchMessages.
-			}
-		}
-
-		#endregion
-
-
-
 	}
 }
