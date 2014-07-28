@@ -12,10 +12,12 @@ using System.Text.RegularExpressions;
 using System.Windows.Forms;
 using System.Xml;
 using Mono.Cecil;
+using Mono.CSharp;
 using Nova.Analysis;
 using Nova.CodeDOM;
 using ICSharpCode.NRefactory;
 using ICSharpCode.NRefactory.CSharp;
+using CSharpParser = ICSharpCode.NRefactory.CSharp.CSharpParser;
 
 namespace TestProgramGenerator
 {
@@ -24,6 +26,7 @@ namespace TestProgramGenerator
 		private static string _baseDirectory;
 		private static string _executionDirectory;
 		private SyntaxTree syntaxTree;
+		private string result = string.Empty; //用于遍历函数
 
 		public Form1()
 		{
@@ -33,12 +36,16 @@ namespace TestProgramGenerator
 		private void button1_Click(object sender, EventArgs e)
 		{
 			string outputDir = "r:\\";
-			//string className = GetClassName(textBox1.Text);
-			string className = "Triangle";
+			string className = string.Empty;
+			string methodName = string.Empty;
 
 			LoadSytanxTree(textBox1.Text); //将源代码解析为语法树
-			textBox1.Clear();
-			TraverseASTNode(syntaxTree);
+			FindNodeName(syntaxTree, "CLASS"); //得到被测的类名
+			className = result;
+
+			result = string.Empty;
+			FindNodeName(syntaxTree, "METHOD"); //得到被测类中的方法
+			methodName = result;
 
 			GenerateCSFile(textBox1.Text, outputDir + "\\" + className + ".cs");
 			GenerateBuildConfig(className, outputDir);
@@ -46,14 +53,7 @@ namespace TestProgramGenerator
 
 			ExecuteNANT(outputDir);
 
-			//string methodName = GetMethodNames(textBox1.Text)[0];
-			textBox1.Text = Regex.Replace(textBox1.Text, "[\f\n\r\t\v]", "");
-			textBox1.Text = Regex.Replace(textBox1.Text, " {2,}", " ");
-			textBox1.Text = textBox1.Text.Replace(" {", "{");
-			//codeText = sourceCode.Replace("\r", "").Replace("\n", "").Replace(" ","").ToLower();
-
-
-			MessageBox.Show("输出成功");
+			MessageBox.Show("输出成功" + methodName);
 		}
 
 		private void ExecuteNANT(string outputDir)
@@ -67,100 +67,87 @@ namespace TestProgramGenerator
 		}
 
 
-		private string GetNodeName(AstNode node)
+		private string GetNodeName(AstNode node, string nodeType)
 		{
-			string className = "";
-
-
-
-
-
-			bool hasProperties = false;
-			bool isClassNode = false;
-
-			foreach (PropertyInfo p in node.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance))
-			{
-
-			}
 			foreach (PropertyInfo p in node.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance))
 			{
 				if (p.Name == "NodeType" || p.Name == "IsNull" || p.Name == "IsFrozen" || p.Name == "HasChildren")
 				{
 					continue;
 				}
-				if ((p.PropertyType == typeof(string) || p.PropertyType.IsEnum || p.PropertyType == typeof(bool)))
+				if ((p.PropertyType == typeof (string) || p.PropertyType.IsEnum || p.PropertyType == typeof (bool)))
 				{
-					if (p.Name == "ClassType")
+					if (nodeType == "CLASS")
 					{
-						foreach (PropertyInfo p2 in node.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance))
+						if (p.Name == "ClassType")
 						{
-							if (p2.Name == "NodeType" || p2.Name == "IsNull" || p2.Name == "IsFrozen" || p2.Name == "HasChildren")
+							foreach (PropertyInfo p2 in node.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance))
 							{
-								continue;
-							}
-							if ((p2.PropertyType == typeof(string) || p2.PropertyType.IsEnum || p2.PropertyType == typeof(bool)))
-							{
-								if (p2.Name.ToUpper() == "NAME") //如果当前是Class节点
+								if (p2.Name == "NodeType" || p2.Name == "IsNull" || p2.Name == "IsFrozen" || p2.Name == "HasChildren")
 								{
-									MessageBox.Show(p2.GetValue(node, null).ToString());
-
+									continue;
+								}
+								if ((p2.PropertyType == typeof (string) || p2.PropertyType.IsEnum || p2.PropertyType == typeof (bool)))
+								{
+									if (p2.Name.ToUpper() == "NAME") //如果当前是Class节点
+									{
+										return p2.GetValue(node, null).ToString();
+									}
 								}
 							}
 						}
 					}
-
-				
+					else if (nodeType == "METHOD")
+					{
+						if (p.Name == "EntityType" && p.GetValue(node, null).ToString() == "Method")
+						{
+							foreach (PropertyInfo p2 in node.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance))
+							{
+								if (p2.Name == "NodeType" || p2.Name == "IsNull" || p2.Name == "IsFrozen" || p2.Name == "HasChildren")
+								{
+									continue;
+								}
+								if ((p2.PropertyType == typeof (string) || p2.PropertyType.IsEnum || p2.PropertyType == typeof (bool)))
+								{
+									if (p2.Name.ToUpper() == "NAME") //如果当前是Method节点
+									{
+										return p2.GetValue(node, null).ToString();
+									}
+								}
+							}
+						}
+					}
+					else
+					{
+					}
 				}
-
 			}
 
-
-			return className;
+			return string.Empty;
 		}
 
-		private void TraverseASTNode(AstNode node)
+		private void FindNodeName(AstNode node, string nodeType)
 		{
 			AstNode childNode;
 
+
 			childNode = node.FirstChild;
 
-			string name = "";
+			string currentName = GetNodeName(node, nodeType);
 
-			if (node != null)
+			if (currentName != string.Empty && result == string.Empty)
 			{
-				name = GetNodeName(node);
-				if (name != "")
-				{
-					textBox1.Text += name + Environment.NewLine;
-				}
+				result = currentName;
 			}
+
 
 			while (childNode != null)
 			{
-				TraverseASTNode(childNode);
+				FindNodeName(childNode, nodeType);
 				childNode = childNode.NextSibling;
 			}
 		}
 
-
-		private List<string> GetMethodNames(string sourceCode)
-		{
-			string codeText = "";
-			int startPos;
-			int endPos;
-			List<string> methodNames;
-
-			codeText = Regex.Replace(sourceCode, "[\f\n\r\t\v]", "");
-			//codeText = sourceCode.Replace("\r", "").Replace("\n", "").Replace(" ","").ToLower();
-			textBox1.Text = codeText;
-
-			return new List<string>();
-			//startPos = codeText.IndexOf("class") + 5;
-			//endPos = codeText.IndexOf("{", startPos);
-			//className = codeText.Substring(startPos, endPos - startPos - 1);
-
-			//return className;
-		}
 
 		private void GenerateBuildConfig(string className, string outputDir)
 		{
