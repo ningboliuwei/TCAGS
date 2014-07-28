@@ -38,6 +38,7 @@ namespace TestProgramGenerator
 			string outputDir = "r:\\";
 			string className = string.Empty;
 			string methodName = string.Empty;
+			string namespaceName = string.Empty;
 
 			LoadSytanxTree(textBox1.Text); //将源代码解析为语法树
 			FindNodeName(syntaxTree, "CLASS"); //得到被测的类名
@@ -47,13 +48,17 @@ namespace TestProgramGenerator
 			FindNodeName(syntaxTree, "METHOD"); //得到被测类中的方法
 			methodName = result;
 
+			result = string.Empty;
+			FindNodeName(syntaxTree, "NAMESPACE"); //得到命名空间
+			namespaceName = result;
+
 			GenerateCSFile(textBox1.Text, outputDir + "\\" + className + ".cs");
 			GenerateBuildConfig(className, outputDir);
-			GenerateUnitTestFile(outputDir + "\\" + className + "test.cs");
+			GenerateUnitTestFile(outputDir + "\\" + className + "Test.cs", className, namespaceName, methodName);
 
 			ExecuteNANT(outputDir);
 
-			MessageBox.Show("输出成功" + methodName);
+			MessageBox.Show("输出成功");
 		}
 
 		private void ExecuteNANT(string outputDir)
@@ -108,6 +113,26 @@ namespace TestProgramGenerator
 									continue;
 								}
 								if ((p2.PropertyType == typeof (string) || p2.PropertyType.IsEnum || p2.PropertyType == typeof (bool)))
+								{
+									if (p2.Name.ToUpper() == "NAME") //如果当前是Method节点
+									{
+										return p2.GetValue(node, null).ToString();
+									}
+								}
+							}
+						}
+					}
+					else if (nodeType == "NAMESPACE")
+					{
+						if (node.GetType().Name == "NamespaceDeclaration")
+						{
+							foreach (PropertyInfo p2 in node.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance))
+							{
+								if (p2.Name == "NodeType" || p2.Name == "IsNull" || p2.Name == "IsFrozen" || p2.Name == "HasChildren")
+								{
+									continue;
+								}
+								if ((p2.PropertyType == typeof(string) || p2.PropertyType.IsEnum || p2.PropertyType == typeof(bool)))
 								{
 									if (p2.Name.ToUpper() == "NAME") //如果当前是Method节点
 									{
@@ -198,7 +223,7 @@ namespace TestProgramGenerator
 			}
 		}
 
-		public void GenerateUnitTestFile(string targetPath)
+		public void GenerateUnitTestFile(string targetPath, string className, string namespaceName, string methodName)
 		{
 			string templatePath;
 			string fileContent;
@@ -209,6 +234,12 @@ namespace TestProgramGenerator
 				StreamReader streamReader = new StreamReader(templatePath, new UTF8Encoding());
 				fileContent = streamReader.ReadToEnd();
 				streamReader.Close();
+
+				fileContent = fileContent.Replace("$namespace_name", namespaceName)
+					.Replace("$test_class_name", className + "Test")
+					.Replace("$class_name", className)
+					.Replace("$instance_name", className.ToLower())
+					.Replace("$method_name", methodName);
 
 				StreamWriter streamWriter = new StreamWriter(targetPath, false, new UTF8Encoding());
 				streamWriter.Write(fileContent);

@@ -4,19 +4,19 @@ using System.Linq;
 using System.Text;
 using NUnit.Framework;
 
-namespace ProgramsForTesting
+namespace $namespace_name
 {
-	class TriangleTest
+	class $test_class_name
 	{
 		private int a;
 		private int b;
 		private int c;
 
-		public Triangle triangle = new Triangle();
+		public $class_name $instance_name = new $class_name();
 
 		
 		[Test] //断言
-		public void GetTriangleTypeTest()
+		public void $method_name()
 		{
 			Assert.AreEqual("非三角形", triangle.GetTypeOfTriangle(1,2,3));
 			Assert.AreEqual("等边三角形", triangle.GetTypeOfTriangle(3, 3, 3));
